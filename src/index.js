@@ -12,7 +12,7 @@ import { multiEmailFnName, multiEmailEndpoint } from "./shared.js";
  *  magicLinkToken: string;
  * }, ctx: import("better-auth").GenericEndpointContext) => void | Promise<void>} sendAuthenticationEmail
  * @property {number} [otpLength=6] Length of the OTP code
- * @property {number} [expiresIn=600] Expiration time in seconds (default: 10 minutes)
+ * @property {number | { magicLink: number; emailOTP: number }} [expiresIn=600] Expiration time in seconds (default: 10 minutes)
  * @property {boolean} [allowSimultaneousUse=false] Allow simultaneous use of both OTP and Magic Link auth methods from the same email
  *
  *              (users can use both methods from the same email instead of either OTP or Magic Link and being denied when trying the other method)
@@ -49,12 +49,12 @@ export const conjoinedEmailPlugin = (options) => {
 
   const magicLinkPlugin = magicLink({
     sendMagicLink: smartSendMagicLink,
-    expiresIn,
+    expiresIn: typeof expiresIn == "object" ? expiresIn.magicLink : expiresIn,
   });
 
   const otpPlugin = emailOTP({
     sendVerificationOTP: smartSendVerificationOTP,
-    expiresIn,
+    expiresIn: typeof expiresIn == "object" ? expiresIn.emailOTP : expiresIn,
     otpLength,
   });
 
