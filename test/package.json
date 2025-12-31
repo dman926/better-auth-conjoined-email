@@ -2,8 +2,7 @@
   "name": "test",
   "type": "module",
   "scripts": {
-    "start": "tsx watch src/index.ts && pnpm run clean",
-    "clean": "rm ./test.db"
+    "start": "tsx watch src/index.ts"
   },
   "dependencies": {
     "@dman926/better-auth-conjoined-email": "workspace:*",

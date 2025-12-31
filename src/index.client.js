@@ -20,9 +20,9 @@ export const conjoinedEmailClientPlugin = () => {
         /** @type {ConjoinedEmailPlugin & MagicLinkPlugin & EmailOTPPlugin} */
         ({}),
 
-      atomListeners: {
+      atomListeners: [
         ...otpPlugin.atomListeners,
-      },
+      ],
 
       getActions: ($fetch) => ({
         [multiEmailFnName]: async (

@@ -1,0 +1,51 @@
+<nav>
+  <a href="/">index</a>
+  <a href="/auth" class="selected">auth</a>
+</nav>
+
+<h1>Sign In</h1>
+
+<form action="/api/auth/sign-in/multi-email" method="POST">
+  <input
+    type="email"
+    name="email"
+    placeholder="Email"
+    autocomplete="email"
+    required
+  />
+  <button type="submit">Sign In With Server</button>
+  <button type="button">Sign In With Client</button>
+</form>
+
+<script type="importmap">
+  {
+    "imports": {
+      "better-auth/client/plugins": "https://esm.sh/better-auth@latest/client/plugins",
+      "better-auth/client": "https://esm.sh/better-auth@latest/client"
+    }
+  }
+</script>
+<script type="module">
+  import { createAuthClient } from "better-auth/client";
+  import { conjoinedEmailClientPlugin } from "/lib/index.client.js";
+
+  export const authClient = createAuthClient({
+    plugins: [conjoinedEmailClientPlugin()],
+  });
+
+  const clientBtn = document.querySelector('button[type="button"]');
+  const emailInput = document.querySelector('input[name="email"]');
+
+  clientBtn.addEventListener("click", () => {
+    if (!emailInput.value) {
+      alert("Please enter an email");
+      return;
+    }
+
+    authClient
+      .signInWithMagicLinkOrOTP({ email: emailInput.value })
+      .then(() => {
+        alert("Email Sent");
+      });
+  });
+</script>

@@ -34,8 +34,9 @@
   },
   "type": "module",
   "files": [
-    "src/*.{js,ts}",
-    "!src/*.{spec,test}.{js,ts}"
+    "src/*.js",
+    "src/*.ts",
+    "!src/*.spec.js"
   ],
   "exports": {
     ".": {
