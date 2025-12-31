@@ -7,6 +7,13 @@ settings:
 importers:
 
   .:
+    dependencies:
+      better-auth:
+        specifier: ^1.4.9
+        version: 1.4.9(better-sqlite3@12.5.0)(vitest@4.0.16(@types/node@20.19.27)(jsdom@27.4.0)(tsx@4.21.0))
+      zod:
+        specifier: ^4.3.2
+        version: 4.3.2
     devDependencies:
       '@eslint/js':
         specifier: ^9.39.2
