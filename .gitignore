@@ -1,2 +1,5 @@
 node_modules/
-dist/
+
+# Generated
+/src/*.d.ts
+/src/*.d.ts.map

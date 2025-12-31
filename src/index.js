@@ -1,9 +1,7 @@
-// index.js
 import { createAuthEndpoint } from "better-auth/api";
-import { generateRandomString } from "better-auth/crypto";
 import { emailOTP, magicLink } from "better-auth/plugins";
-import { z } from "zod";
-import { getOTP, getMagicLink } from "./wrappers.js";
+import { authCaptureStorage } from "./store.js";
+import { multiEmailFnName, multiEmailEndpoint } from "./shared.js";
 
 /**
  * @typedef {Object} Options
@@ -13,23 +11,49 @@ import { getOTP, getMagicLink } from "./wrappers.js";
  *  magicLink: string;
  *  magicLinkToken: string;
  * }, ctx: import("better-auth").GenericEndpointContext) => void | Promise<void>} sendAuthenticationEmail
- * @property {number} [otpLength=6] - Length of the OTP code
- * @property {number} [expiresIn=600] - Expiration time in seconds (default: 10 minutes)
+ * @property {number} [otpLength=6] Length of the OTP code
+ * @property {number} [expiresIn=600] Expiration time in seconds (default: 10 minutes)
+ * @property {boolean} [allowSimultaneousUse=false] Allow simultaneous use of both OTP and Magic Link auth methods from the same email
+ *
+ *              (users can use both methods from the same email instead of either OTP or Magic Link and being denied when trying the other method)
  */
 
-export const conjoinedEmailPlugin = (
-  /** @type {Options} */
-  options
-) => {
-  const { sendAuthenticationEmail, otpLength = 6, expiresIn = 600 } = options;
+/**
+ * Wraps around the official better-auth emailOTP and magicLink plugins to
+ * join both auth methods into a single email.
+ *
+ * This plugin fully replaces both `emailOTP` and `magicLink` and so they
+ * should not be included in your better-auth plugin list (server or client)
+ *
+ * @param {Options} options
+ */
+export const conjoinedEmailPlugin = (options) => {
+  const {
+    sendAuthenticationEmail,
+    otpLength = 6,
+    expiresIn = 600,
+    allowSimultaneousUse = false,
+  } = options;
+
+  // Senders
+  /** @type {Parameters<typeof magicLink>[0]['sendMagicLink']} */
+  const smartSendMagicLink = async ({ token, url }) => {
+    const store = authCaptureStorage.getStore();
+    store?.resolveMagicLink?.({ token, url });
+  };
+  /** @type {Parameters<typeof emailOTP>[0]['sendVerificationOTP']} */
+  const smartSendVerificationOTP = async ({ otp }) => {
+    const store = authCaptureStorage.getStore();
+    store?.resolveOTP?.(otp);
+  };
 
   const magicLinkPlugin = magicLink({
-    sendMagicLink: async () => {},
+    sendMagicLink: smartSendMagicLink,
     expiresIn,
   });
 
   const otpPlugin = emailOTP({
-    sendVerificationOTP: async () => {},
+    sendVerificationOTP: smartSendVerificationOTP,
     expiresIn,
     otpLength,
   });
@@ -50,172 +74,158 @@ export const conjoinedEmailPlugin = (
       endpoints: {
         ...magicLinkPlugin.endpoints,
         ...otpPlugin.endpoints,
-        TodoNameMe: createAuthEndpoint(
-          "/sign-in/multi-email",
+        [multiEmailFnName]: createAuthEndpoint(
+          multiEmailEndpoint,
           {
             method: "POST",
-            body: z.object({
-              email: z.email(),
-            }),
             requireHeaders: true,
+            body: magicLinkPlugin.endpoints.signInMagicLink.options.body,
+            metadata: {
+              openapi: {
+                operationId: multiEmailFnName,
+                description: "Sign in with magic link or OTP",
+                responses: {
+                  200: {
+                    description: "Success",
+                    content: {
+                      "application/json": {
+                        schema: {
+                          type: "object",
+                          properties: {
+                            status: {
+                              type: "boolean",
+                            },
+                          },
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
           },
-          async (ctx) => {
-            const { email } = ctx.body;
+          async (ctx) =>
+            authCaptureStorage.run(
+              /** @type {import("./store.js").CaptureStorage} */ ({}),
+              async () => {
+                const store = authCaptureStorage.getStore();
+                if (!store) {
+                  return ctx.json({ success: false, error: "Store not found" });
+                }
 
-            const requestId = generateRandomString(32);
+                // Watchers
+                const magicLinkPromise = new Promise(
+                  (/** @type {typeof store.resolveMagicLink} */ res) => {
+                    store.resolveMagicLink = res;
+                  }
+                );
+                const otpPromise = new Promise(
+                  (/** @type {typeof store.resolveOTP} */ res) => {
+                    store.resolveOTP = res;
+                  }
+                );
 
-            const [otp, { magicLink, magicLinkToken }] = await Promise.all([
-              getOTP(requestId, otpPlugin, ctx),
-              getMagicLink(requestId, magicLinkPlugin, ctx, email),
-            ]);
+                const otpCtx = {
+                  ...ctx,
+                  body: {
+                    ...ctx.body,
+                    type: /** @type {const} */ ("sign-in"),
+                  },
+                };
 
-            await sendAuthenticationEmail(
-              { email, otp, magicLink, magicLinkToken },
-              ctx
-            );
+                await Promise.all([
+                  magicLinkPlugin.endpoints.signInMagicLink(ctx),
+                  otpPlugin.endpoints.sendVerificationOTP(otpCtx),
+                ]);
 
-            return ctx.json({
-              success: true,
-              message: "Authentication email sent",
-            });
-          }
+                const { token: magicLinkToken, url: magicLink } =
+                  await magicLinkPromise;
+                const otp = await otpPromise;
+
+                await ctx.context.runInBackgroundOrAwait(
+                  sendAuthenticationEmail(
+                    { email: ctx.body.email, otp, magicLink, magicLinkToken },
+                    ctx
+                  )
+                );
+
+                return ctx.json({
+                  success: true,
+                  message: "Authentication email sent",
+                });
+              }
+            )
         ),
       },
       hooks: {
         after: [
           ...otpPlugin.hooks.after,
-          {
-            // Match both OTP and magic link verification endpoints
-            matcher: (ctx) =>
-              ctx.path == otpPlugin.endpoints.verifyEmailOTP.path ||
-              ctx.path == magicLinkPlugin.endpoints.magicLinkVerify.path,
+          allowSimultaneousUse
+            ? undefined
+            : /** @satisfies {NonNullable<NonNullable<import("better-auth").BetterAuthPlugin['hooks']>['after']>[number]} */
+              ({
+                matcher: (ctx) =>
+                  // Match both OTP and magic link verification endpoints
+                  ctx.path == otpPlugin.endpoints.verifyEmailOTP.path ||
+                  ctx.path == magicLinkPlugin.endpoints.magicLinkVerify.path,
 
-            handler: async (ctx) => {
-              // Extract email from the request
-              // For OTP: comes from body
-              // For magic link: comes from query params
-              const email =
-                (ctx.body && typeof ctx.body === "object" && "email" in ctx.body
-                  ? /** @type {Record<string, string>} */ (ctx.body).email
-                  : null) ||
-                (ctx.query &&
-                typeof ctx.query === "object" &&
-                "email" in ctx.query
-                  ? ctx.query.email
-                  : null);
+                /** Invalidate the corresponding auth method when the other succeeds */
+                handler: async (ctx) => {
+                  const email =
+                    /** @type {Record<string, string> | undefined} */ (ctx.body)
+                      ?.email || ctx.query?.email;
+                  if (!email) return ctx;
 
-              if (!email || typeof email !== "string") {
-                return ctx;
-              }
+                  const adapter =
+                    /** @type {{ context: { adapter: import("better-auth/types").DBAdapter } }} */ (
+                      ctx
+                    ).context.adapter;
 
-              const adapter =
-                /** @type {{ context: { adapter: import("better-auth/types").DBAdapter } }} */ (
-                  ctx
-                ).context.adapter;
-
-              try {
-                // Get all verification records for this email
-                // Check both "verification" model (for OTP) and "magicLink" model
-                const [verifications, magicLinks] = await Promise.all([
-                  adapter
-                    .findMany({
+                  try {
+                    /** @type {import("better-auth").Verification[]} */
+                    const verifications = await adapter.findMany({
                       model: "verification",
                       where: [{ field: "identifier", value: email }],
-                    })
-                    .catch(() => []),
-                  adapter
-                    .findMany({
-                      model: "magicLink",
-                      where: [{ field: "email", value: email }],
-                    })
-                    .catch(() => []),
-                ]);
+                    });
 
-                // Find the requestId from the used verification
-                let usedRequestId = null;
+                    // Find any records that do not have a close relative (1s) based on createdAt times
+                    const zombies = verifications.filter(
+                      (v1, i, a) =>
+                        a.every(
+                          (v2) =>
+                            Math.abs(
+                              v1.createdAt.getTime() - v2.createdAt.getTime()
+                            ) > 1000
+                        ) ||
+                        // is the last item in the array (and so has no sibling)
+                        i == verifications.length - 1
+                    );
 
-                // Check what was used - OTP code or magic link token
-                const usedCode =
-                  ctx.body && typeof ctx.body === "object" && "code" in ctx.body
-                    ? /** @type {Record<string, string>} */ (ctx.body).code
-                    : null;
-                const usedToken =
-                  ctx.query &&
-                  typeof ctx.query === "object" &&
-                  "token" in ctx.query
-                    ? ctx.query.token
-                    : null;
-
-                // Find requestId from OTP verifications
-                if (usedCode) {
-                  for (const verification of verifications) {
-                    if (
-                      verification.value === usedCode &&
-                      verification.metadata?.requestId
-                    ) {
-                      usedRequestId = verification.metadata.requestId;
-                      break;
+                    if (zombies.length > 0) {
+                      await adapter.deleteMany({
+                        model: "verification",
+                        where: zombies.map((v) => ({
+                          field: "id",
+                          value: v.id,
+                        })),
+                      });
                     }
-                  }
-                }
-
-                // Find requestId from magic link verifications
-                if (!usedRequestId && usedToken) {
-                  for (const magicLink of magicLinks) {
-                    if (
-                      magicLink.token === usedToken &&
-                      magicLink.metadata?.requestId
-                    ) {
-                      usedRequestId = magicLink.metadata.requestId;
-                      break;
-                    }
-                  }
-                }
-
-                // Delete all verifications and magic links with the same requestId
-                if (usedRequestId) {
-                  const deletePromises = [];
-
-                  // Delete OTP verifications
-                  for (const verification of verifications) {
-                    if (verification.metadata?.requestId === usedRequestId) {
-                      deletePromises.push(
-                        adapter
-                          .delete({
-                            model: "verification",
-                            where: [{ field: "id", value: verification.id }],
-                          })
-                          .catch(() => {}) // Ignore individual delete errors
-                      );
-                    }
+                  } catch (err) {
+                    console.error(
+                      "Conjoined Email Plugin: Failed to clean up sibling verification",
+                      err
+                    );
                   }
 
-                  // Delete magic links
-                  for (const magicLink of magicLinks) {
-                    if (magicLink.metadata?.requestId === usedRequestId) {
-                      deletePromises.push(
-                        adapter
-                          .delete({
-                            model: "magicLink",
-                            where: [{ field: "id", value: magicLink.id }],
-                          })
-                          .catch(() => {}) // Ignore individual delete errors
-                      );
-                    }
-                  }
-
-                  await Promise.all(deletePromises);
-                }
-              } catch (error) {
-                console.error("Error cleaning up verification records:", error);
-              }
-
-              return ctx;
-            },
-          },
-        ],
+                  return ctx;
+                },
+              }),
+        ].filter((h) => !!h),
       },
       rateLimit: [...magicLinkPlugin.rateLimit, ...otpPlugin.rateLimit],
+      $ERROR_CODES: {
+        ...otpPlugin.$ERROR_CODES,
+      },
     })
   );
 };

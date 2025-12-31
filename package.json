@@ -9,34 +9,54 @@
     "url": "git+https://github.com/dman926/better-auth-conjoined-email.git"
   },
   "scripts": {
-    "build": "tsup",
-    "build:watch": "tsup --watch",
+    "build": "tsc -p tsconfig.build.json",
+    "prepublishOnly": "pnpm build",
     "test": "vitest",
-    "lint": "eslint"
+    "lint": "eslint",
+    "clean": "rm ./src/*.d.ts ./src/*.d.ts.map"
   },
   "devDependencies": {
+    "@better-fetch/fetch": "^1.1.21",
     "@eslint/js": "^9.39.2",
+    "@types/node": "^20.19.27",
     "eslint": "^9.39.2",
     "globals": "^16.5.0",
     "jsdom": "^27.4.0",
-    "tsup": "^8.5.1",
     "typescript": "^5.9.3",
     "typescript-eslint": "^8.51.0",
     "vitest": "^4.0.16"
   },
+  "dependencies": {
+    "better-auth": "^1.4.9"
+  },
+  "peerDependencies": {
+    "better-auth": "^1.4.9"
+  },
   "type": "module",
+  "files": [
+    "src/*.{js,ts}",
+    "!src/*.{spec,test}.{js,ts}"
+  ],
   "exports": {
     ".": {
-      "import": "./dist/index.js",
-      "types": "./dist/index.d.ts"
+      "dev-source": "./src/index.js",
+      "types": "./src/index.d.ts",
+      "default": "./src/index.js"
     },
     "./client": {
-      "import": "./dist/client.js",
-      "types": "./dist/client.d.ts"
+      "dev-source": "./src/index.client.js",
+      "types": "./src/index.client.d.ts",
+      "default": "./src/index.client.js"
     }
   },
-  "dependencies": {
-    "better-auth": "^1.4.9",
-    "zod": "^4.3.2"
+  "typesVersions": {
+    "*": {
+      "*": [
+        "./src/index.d.ts"
+      ],
+      "client": [
+        "./src/index.client.d.ts"
+      ]
+    }
   }
 }

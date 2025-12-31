@@ -4,10 +4,10 @@
     "module": "nodenext",
     "moduleResolution": "nodenext",
     "lib": ["ESNext", "DOM"],
+    "types": ["node", "vitest/globals"],
     "allowJs": true,
     "checkJs": true,
     "maxNodeModuleJsDepth": 1,
-    "outDir": "./dist",
     "declaration": true,
     "emitDeclarationOnly": true,
     "declarationMap": true,
@@ -17,11 +17,6 @@
     "skipLibCheck": true,
     "isolatedModules": true
   },
-  "include": ["src/**/*.js"],
-  "exclude": ["node_modules", "dist", "src/**/*.{test,spec}.js"],
-  "references": [
-    {
-      "path": "./tsconfig.spec.json"
-    }
-  ]
+  "include": ["src/**/*.js", "src/**/*.ts"],
+  "exclude": ["node_modules"]
 }
