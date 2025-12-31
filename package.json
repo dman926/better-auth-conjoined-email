@@ -1,0 +1,37 @@
+{
+  "name": "@dman926/better-auth-conjoined-email",
+  "license": "MIT",
+  "version": "0.0.1",
+  "author": "Dennis James Stelmach <dj@dstelmach.com>",
+  "description": "Send a conjoined authentication email using multiple authentication methods at once",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/dman926/better-auth-conjoined-email.git"
+  },
+  "scripts": {
+    "build": "tsup",
+    "test": "vitest",
+    "lint": "eslint"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.39.2",
+    "eslint": "^9.39.2",
+    "globals": "^16.5.0",
+    "jsdom": "^27.4.0",
+    "tsup": "^8.5.1",
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.51.0",
+    "vitest": "^4.0.16"
+  },
+  "type": "module",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    },
+    "./client": {
+      "import": "./dist/client.js",
+      "types": "./dist/client.d.ts"
+    }
+  }
+}
