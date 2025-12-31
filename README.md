@@ -6,7 +6,7 @@ Send a conjoined authentication email using multiple authentication methods at o
 
 There isn't a clean way to have both the better-auth [magicLink](https://www.better-auth.com/docs/plugins/magic-link) and [emailOTP](https://www.better-auth.com/docs/plugins/email-otp) plugins defined in your auth config and have both fire at the same time, sending a single email with both authentication options, so I made this plugin.
 
-## Install
+## Install (Not published yet until I can test it)
 
 ```
 npm i @dman926/better-auth-conjoined-email
