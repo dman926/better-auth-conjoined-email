@@ -1,0 +1,21 @@
+{
+  "name": "test",
+  "type": "module",
+  "scripts": {
+    "start": "tsx watch src/index.ts && pnpm run clean",
+    "clean": "rm ./test.db"
+  },
+  "dependencies": {
+    "@dman926/better-auth-conjoined-email": "workspace:*",
+    "@hono/node-server": "^1.19.6",
+    "better-auth": "^1.4.9",
+    "better-sqlite3": "^12.5.0",
+    "hono": "^4.11.3"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.13",
+    "@types/node": "^20.11.17",
+    "tsx": "^4.7.1",
+    "typescript": "^5.8.3"
+  }
+}

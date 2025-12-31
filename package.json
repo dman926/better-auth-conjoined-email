@@ -10,6 +10,7 @@
   },
   "scripts": {
     "build": "tsup",
+    "build:watch": "tsup --watch",
     "test": "vitest",
     "lint": "eslint"
   },
