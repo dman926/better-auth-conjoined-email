@@ -1,4 +1,4 @@
-import { createAuthEndpoint } from "better-auth/api";
+import { createAuthEndpoint, createAuthMiddleware } from "better-auth/api";
 import { emailOTP, magicLink } from "better-auth/plugins";
 import { authCaptureStorage } from "./store.js";
 import { multiEmailFnName, multiEmailEndpoint } from "./shared.js";
@@ -159,6 +159,34 @@ export const conjoinedEmailPlugin = (options) => {
         ),
       },
       hooks: {
+        before: [
+          {
+            matcher: (ctx) =>
+              ctx.path == otpPlugin.endpoints.signInEmailOTP.path ||
+              ctx.path == magicLinkPlugin.endpoints.magicLinkVerify.path,
+            handler: createAuthMiddleware(async (ctx) => {
+              const adapter = ctx.context.adapter;
+              let email = ctx.body?.email;
+
+              // If no email (Magic Link), find it via token
+              if (!email && ctx.query?.token) {
+                const verification = await adapter.findOne({
+                  model: "verification",
+                  where: [{ field: "identifier", value: ctx.query.token }],
+                });
+                if (verification) {
+                  email = JSON.parse(verification.value).email;
+                }
+              }
+
+              if (email) {
+                /** @type {any} */ (ctx).conjoinedEmail = email;
+              }
+
+              return { context: ctx };
+            }),
+          },
+        ],
         after: [
           ...otpPlugin.hooks.after,
           allowSimultaneousUse
@@ -167,28 +195,31 @@ export const conjoinedEmailPlugin = (options) => {
               ({
                 matcher: (ctx) =>
                   // Match both OTP and magic link verification endpoints
-                  ctx.path == otpPlugin.endpoints.verifyEmailOTP.path ||
+                  ctx.path == otpPlugin.endpoints.signInEmailOTP.path ||
                   ctx.path == magicLinkPlugin.endpoints.magicLinkVerify.path,
 
-                /** Invalidate the corresponding auth method when the other succeeds */
-                handler: async (ctx) => {
-                  // TODO: doesn't work to invalidate
-
-                  const email =
-                    /** @type {Record<string, string> | undefined} */ (ctx.body)
-                      ?.email || ctx.query?.email;
-                  if (!email) return ctx;
-
-                  const adapter =
-                    /** @type {{ context: { adapter: import("better-auth/types").DBAdapter } }} */ (
-                      ctx
-                    ).context.adapter;
+                handler: createAuthMiddleware(async (ctx) => {
+                  /** @type {string} */
+                  const email = /** @type {any} */ (ctx).conjoinedEmail;
 
                   try {
                     /** @type {import("better-auth").Verification[]} */
-                    const verifications = await adapter.findMany({
+                    const verifications = await ctx.context.adapter.findMany({
                       model: "verification",
-                      where: [{ field: "identifier", value: email }],
+                      where: [
+                        // email otp
+                        {
+                          field: "identifier",
+                          value: `sign-in-otp-${email}`,
+                          connector: "OR",
+                        },
+                        // magic link
+                        {
+                          field: "value",
+                          value: JSON.stringify({ email }),
+                          connector: "OR",
+                        },
+                      ],
                     });
 
                     // Find any records that do not have a close relative (1s) based on createdAt times
@@ -205,13 +236,15 @@ export const conjoinedEmailPlugin = (options) => {
                     );
 
                     if (zombies.length > 0) {
-                      await adapter.deleteMany({
+                      await ctx.context.adapter.deleteMany({
                         model: "verification",
                         where: zombies.map((v) => ({
                           field: "id",
                           value: v.id,
                         })),
                       });
+                    } else {
+                      throw new Error("No sibling verification found");
                     }
                   } catch (err) {
                     console.error(
@@ -221,7 +254,7 @@ export const conjoinedEmailPlugin = (options) => {
                   }
 
                   return ctx;
-                },
+                }),
               }),
         ].filter((h) => !!h),
       },
