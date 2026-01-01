@@ -1,7 +1,7 @@
 {
   "name": "@dman926/better-auth-conjoined-email",
   "license": "MIT",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "author": "Dennis James Stelmach <dj@dstelmach.com>",
   "description": "Send a conjoined authentication email using multiple authentication methods at once",
   "repository": {
@@ -36,11 +36,7 @@
     "better-auth": "^1.4.9"
   },
   "type": "module",
-  "files": [
-    "src/*.js",
-    "src/*.ts",
-    "!src/*.spec.js"
-  ],
+  "files": ["src"],
   "exports": {
     ".": {
       "dev-source": "./src/index.js",

@@ -1,7 +1,22 @@
 import { createAuthEndpoint, createAuthMiddleware } from "better-auth/api";
 import { emailOTP, magicLink } from "better-auth/plugins";
-import { authCaptureStorage } from "./store.js";
+import { AsyncLocalStorage } from "node:async_hooks";
 import { multiEmailFnName, multiEmailEndpoint } from "./shared.js";
+
+/**
+ * @typedef {Object} CaptureStorage
+ * @property {(data: { token: string, url: string }) => void} resolveMagicLink
+ * @property {(data: string) => void} resolveOTP
+ */
+
+/**
+ * Bit of a magic hack to pass the generated magicLink+token or OTP around.
+ *
+ * `resolveMagicLink` and `resolveOTP` **MUST** be set before calling the respective plugin endpoints
+ *
+ * @type {AsyncLocalStorage<CaptureStorage>}
+ */
+export const authCaptureStorage = new AsyncLocalStorage();
 
 /**
  * @typedef {Object} MultiEmailPayload
@@ -107,7 +122,7 @@ export const conjoinedEmailPlugin = (options) => {
           },
           async (ctx) =>
             authCaptureStorage.run(
-              /** @type {import("./store.js").CaptureStorage} */ ({}),
+              /** @type {CaptureStorage} */ ({}),
               async () => {
                 const store = authCaptureStorage.getStore();
                 if (!store) {
