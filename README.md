@@ -40,7 +40,7 @@ export const auth = betterAuth({
         // Send the email containing both OTP and magic link
       },
     }),
-    // magicLink or emailOTP plugins are contained in conjoinedEmailPlugin
+    // magicLink and emailOTP plugins are contained in conjoinedEmailPlugin
     // and do not need to be added
   ],
 });
@@ -56,7 +56,7 @@ import { conjoinedEmailClientPlugin } from "@dman926/better-auth-conjoined-email
 export const authClient = createAuthClient({
   plugins: [
     conjoinedEmailClientPlugin(),
-    // magicLinkClient or emailOTPClient are contained in conjoinedEmailClientPlugin
+    // magicLinkClient and emailOTPClient are contained in conjoinedEmailClientPlugin
     // and do not need to be added
   ],
 });
