@@ -1,7 +1,15 @@
 import { serve } from "@hono/node-server";
 import { Hono } from "hono";
 import { auth } from "./server/auth.js";
-import { layout, routes, styles, clientJS, sharedJS } from "./routes/index.js";
+import {
+  layout,
+  routes,
+  styles,
+  clientJS,
+  sharedJS,
+  otpPage,
+} from "./routes/index.js";
+import { renderInbox } from "./inbox.js";
 
 const app = new Hono<{
   Variables: {
@@ -11,32 +19,7 @@ const app = new Hono<{
 }>();
 
 // Auth handlers
-app.on(["POST", "GET"], "/api/auth/*", async (c) => {
-  const contentType = c.req.header("Content-Type");
-  
-  // Stupid hack to work around https://github.com/better-auth/better-auth/issues/6195
-  if (contentType?.includes("application/x-www-form-urlencoded")) {
-    // 1. Parse the form data
-    const formData = await c.req.formData();
-    const bodyObj = Object.fromEntries(formData.entries());
-
-    // 2. Construct a clean Request from scratch
-    // This avoids carrying over conflicting internal state from c.req.raw
-    const url = c.req.url;
-    const newReq = new Request(url, {
-      method: "POST",
-      headers: {
-        ...c.req.raw.headers,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(bodyObj),
-    });
-
-    return auth.handler(newReq);
-  }
-
-  return auth.handler(c.req.raw);
-});
+app.on(["POST", "GET"], "/api/auth/*", (c) => auth.handler(c.req.raw));
 
 app.get("/styles.css", (c) =>
   c.text(styles, 200, {
@@ -67,11 +50,86 @@ app.use("*", async (c, next) => {
 
 Object.entries(routes).forEach(([path, content]) => {
   app.get(path, async (c) => {
-    if (path == "/" && !c.get("user")) {
-      return c.redirect("/auth");
+    if (path == "/") {
+      const user = c.get("user");
+      if (user) {
+        return c.render(content.replaceAll("{{email}}", user.email));
+      } else {
+        return c.redirect("/auth");
+      }
+    }
+    const emailQuery = c.req.query("email");
+    if (path == "/auth" && emailQuery) {
+      return c.render(otpPage.replaceAll("{{email}}", emailQuery));
     }
     return c.render(content);
   });
+});
+
+app.post("/auth/multi-email", async (c) => {
+  const body = await c.req.formData();
+  const email = body.get("email");
+  if (!(email && typeof email == "string"))
+    return c.render(
+      routes["/auth"].replace(
+        "<!-- missing email line -->",
+        '<p data-testid="missing-email" style="color: red">Missing email</p>'
+      )
+    );
+  await auth.api.sendMagicLinkAndOTP({
+    body: { email },
+    headers: c.req.raw.headers,
+  });
+
+  return c.redirect(`/auth?email=${encodeURIComponent(email)}`);
+});
+
+app.get("/auth/sign-out", async (c) => {
+  const authRes = await auth.api.signOut({
+    headers: c.req.raw.headers,
+    asResponse: true,
+  });
+  const res = c.redirect("/");
+  const setCookie = authRes.headers.get("set-cookie");
+  if (setCookie) {
+    res.headers.set("set-cookie", setCookie);
+  }
+  return res;
+});
+
+app.post("/auth/otp", async (c) => {
+  const body = await c.req.formData();
+  const email = body.get("email");
+  const otp = body.get("otp");
+  if (!(email && typeof email == "string" && otp && typeof otp == "string"))
+    return c.text("Invalid request", 400);
+  try {
+    const authRes = await auth.api.signInEmailOTP({
+      body: { email, otp },
+      asResponse: true,
+    });
+    const res = c.redirect("/");
+    const setCookie = authRes.headers.get("set-cookie");
+    if (setCookie) {
+      res.headers.set("set-cookie", setCookie);
+    }
+    return res;
+  } catch {
+    return c.render(
+      otpPage
+        .replaceAll("{{email}}", email)
+        .replace(
+          "<!-- invalid opt line -->",
+          `<p data-testid="invalid-otp" style="color: red">Invalid OTP</p>`
+        )
+    );
+  }
+});
+
+// "inbox" route to see all the "emails" being sent
+app.get("/inbox/:email", (c) => {
+  const email = c.req.param("email");
+  return c.render(renderInbox(email));
 });
 
 serve(

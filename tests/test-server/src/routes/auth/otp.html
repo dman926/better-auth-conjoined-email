@@ -5,19 +5,13 @@
 
 <h1 data-testid="header">Sign In</h1>
 
-<!-- missing email line -->
+<!-- invalid opt line -->
 
-<form action="/auth/multi-email" method="POST">
-  <input
-    data-testid="email-input"
-    type="email"
-    name="email"
-    placeholder="Email"
-    autocomplete="email"
-    required
-  />
-  <button data-testid="submit-server" type="submit">Sign In With Server</button>
-  <button data-testid="submit-client" type="button">Sign In With Client</button>
+<form action="/auth/otp" method="POST">
+  <input type="hidden" name="email" value="{{email}}" />
+  <input data-testid="otp-input" type="text" name="otp" placeholder="OTP" required />
+  <button data-testid="submit-server" type="submit">Submit OTP With Server</button>
+  <button data-testid="submit-client" type="button">Submit OTP With Client</button>
 </form>
 
 <script type="importmap">
@@ -37,17 +31,17 @@
   });
 
   const clientBtn = document.querySelector('button[type="button"]');
-  const emailInput = document.querySelector('input[name="email"]');
+  const otpInput = document.querySelector('input[name="otp"]');
+  const email = "{{email}}";
 
   clientBtn.addEventListener("click", () => {
-    if (!emailInput.value) {
-      alert("Please enter an email");
+    if (!otpInput.value) {
+      alert("Please enter an OTP");
       return;
     }
 
-    authClient.sendMagicLinkAndOTP({ email: emailInput.value }).then(() => {
-      window.location.href =
-        "/auth?email=" + encodeURIComponent(emailInput.value);
+    authClient.signIn.emailOtp({ email, otp: otpInput.value }).then(() => {
+      window.location.href = "/";
     }).catch((err) => {
       alert(err.message);
     });

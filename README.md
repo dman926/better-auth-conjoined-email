@@ -71,8 +71,8 @@ export function SignIn() {
     ev.preventDefault();
 
     // Send the email containing an OTP code and a magic link
-    authClient.signInWithMagicLinkOrOTP({ email });
-    // auth.api.signInWithMagicLinkOrOTP is available on the server auth client
+    authClient.sendMagicLinkAndOTP({ email });
+    // auth.api.sendMagicLinkAndOTP is available on the server auth client
   }, [email]);
 
   return (

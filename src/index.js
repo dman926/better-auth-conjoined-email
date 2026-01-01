@@ -4,13 +4,14 @@ import { authCaptureStorage } from "./store.js";
 import { multiEmailFnName, multiEmailEndpoint } from "./shared.js";
 
 /**
+ * @typedef {Object} MultiEmailPayload
+ * @property {string} email
+ * @property {string} otp
+ * @property {string} magicLink
+ * @property {string} magicLinkToken
+ *
  * @typedef {Object} Options
- * @property {(data: {
- *  email: string,
- *  otp: string;
- *  magicLink: string;
- *  magicLinkToken: string;
- * }, ctx: import("better-auth").GenericEndpointContext) => void | Promise<void>} sendAuthenticationEmail
+ * @property {(data: MultiEmailPayload, ctx: import("better-auth").GenericEndpointContext) => void | Promise<void>} sendAuthenticationEmail
  * @property {number} [otpLength=6] Length of the OTP code
  * @property {number | { magicLink: number; emailOTP: number }} [expiresIn=600] Expiration time in seconds (default: 10 minutes)
  * @property {boolean} [allowSimultaneousUse=false] Allow simultaneous use of both OTP and Magic Link auth methods from the same email
@@ -171,6 +172,8 @@ export const conjoinedEmailPlugin = (options) => {
 
                 /** Invalidate the corresponding auth method when the other succeeds */
                 handler: async (ctx) => {
+                  // TODO: doesn't work to invalidate
+
                   const email =
                     /** @type {Record<string, string> | undefined} */ (ctx.body)
                       ?.email || ctx.query?.email;

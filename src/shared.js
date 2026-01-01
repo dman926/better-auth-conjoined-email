@@ -1,2 +1,2 @@
-export const multiEmailFnName = "signInWithMagicLinkOrOTP";
+export const multiEmailFnName = "sendMagicLinkAndOTP";
 export const multiEmailEndpoint = "/sign-in/multi-email";

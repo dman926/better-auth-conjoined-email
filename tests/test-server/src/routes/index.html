@@ -1,6 +1,12 @@
 <nav>
-  <a href="/" class="selected">index</a>
-  <a href="/auth">auth</a>
+  <a data-testid="nav-index" href="/" class="selected">index</a>
+  <a data-testid="nav-auth" href="/auth">auth</a>
 </nav>
 
 <h1 data-testid="header">index</h1>
+
+<p data-testid="user-email">{{email}}</p>
+
+<form action="/auth/sign-out" method="GET">
+  <button data-testid="sign-out" type="submit">Sign Out</button>
+</form>

@@ -1,4 +1,5 @@
 import { conjoinedEmailPlugin } from "../../src/index.js";
+import { multiEmailFnName } from "../../src/shared.js";
 import { emailOTP, magicLink } from "better-auth/plugins";
 
 vi.mock("better-auth/plugins", async (importOriginal) => {
@@ -132,7 +133,7 @@ describe("conjoinedEmailPlugin", () => {
       expect(plugin.endpoints).toHaveProperty("magicLinkVerify");
       expect(plugin.endpoints).toHaveProperty("sendVerificationOTP");
       expect(plugin.endpoints).toHaveProperty("verifyEmailOTP");
-      expect(plugin.endpoints).toHaveProperty("signInWithMagicLinkOrOTP");
+      expect(plugin.endpoints).toHaveProperty(multiEmailFnName);
     });
   });
 });
