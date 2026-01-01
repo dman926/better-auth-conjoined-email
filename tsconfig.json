@@ -4,7 +4,7 @@
     "module": "nodenext",
     "moduleResolution": "nodenext",
     "lib": ["ESNext", "DOM"],
-    "types": ["node", "vitest/globals"],
+    "types": ["node"],
     "allowJs": true,
     "checkJs": true,
     "maxNodeModuleJsDepth": 1,
@@ -18,5 +18,10 @@
     "isolatedModules": true
   },
   "include": ["src/**/*.js", "src/**/*.ts"],
-  "exclude": ["node_modules"]
+  "exclude": ["node_modules"],
+  "references": [
+    {
+      "path": "./tsconfig.spec.json"
+    }
+  ]
 }

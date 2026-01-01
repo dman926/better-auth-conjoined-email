@@ -3,3 +3,10 @@ node_modules/
 # Generated
 /src/*.d.ts
 /src/*.d.ts.map
+
+# Playwright
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/
+/playwright/.auth/

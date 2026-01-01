@@ -26,7 +26,7 @@ export default defineConfig([
 	},
   // Vitest globals
   {
-    files: ["src/**/*.test.js", "src/**/*.spec.js"],
+    files: ["tests/unit/**/*.spec.js"],
     languageOptions: {
       globals: {
         describe: "readonly",

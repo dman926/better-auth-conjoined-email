@@ -9,16 +9,19 @@
     "url": "git+https://github.com/dman926/better-auth-conjoined-email.git"
   },
   "scripts": {
-    "build": "tsc -p tsconfig.build.json",
+    "build": "tsc",
     "prepublishOnly": "pnpm build",
     "test": "vitest",
+    "test:e2e": "playwright test",
     "lint": "eslint",
     "clean": "rm ./src/*.d.ts ./src/*.d.ts.map"
   },
   "devDependencies": {
     "@better-fetch/fetch": "^1.1.21",
     "@eslint/js": "^9.39.2",
+    "@playwright/test": "^1.57.0",
     "@types/node": "^20.19.27",
+    "concurrently": "^9.2.1",
     "eslint": "^9.39.2",
     "globals": "^16.5.0",
     "jsdom": "^27.4.0",

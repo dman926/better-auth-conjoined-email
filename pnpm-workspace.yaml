@@ -1,5 +1,5 @@
 packages:
-  - test
+  - tests/test-server
 
 onlyBuiltDependencies:
   - better-sqlite3

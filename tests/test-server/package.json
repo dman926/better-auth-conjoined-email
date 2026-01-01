@@ -1,5 +1,5 @@
 {
-  "name": "test",
+  "name": "test-server",
   "type": "module",
   "scripts": {
     "start": "tsx watch src/index.ts"
