@@ -26,6 +26,6 @@ jobs:
         run: pnpm run test:e2e
 
       - name: Publish
-        run: pnpm publish
+        run: pnpm publish --access public
         env:
           NODE_AUTH_TOKEN: ${{secrets.npm_token}}
