@@ -4,6 +4,10 @@ on:
   release:
     types: [created]
 
+permissions:
+  id-token: write
+  contents: read
+
 jobs:
   publish:
     runs-on: ubuntu-latest
@@ -27,5 +31,3 @@ jobs:
 
       - name: Publish
         run: pnpm publish --access public
-        env:
-          NODE_AUTH_TOKEN: ${{secrets.npm_token}}
