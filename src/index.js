@@ -16,7 +16,7 @@ import { multiEmailFnName, multiEmailEndpoint } from "./shared.js";
  *
  * @type {AsyncLocalStorage<CaptureStorage>}
  */
-export const authCaptureStorage = new AsyncLocalStorage();
+const authCaptureStorage = new AsyncLocalStorage();
 
 /**
  * @typedef {Object} MultiEmailPayload
