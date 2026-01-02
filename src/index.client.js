@@ -1,5 +1,4 @@
 import { emailOTPClient } from "better-auth/client/plugins";
-import { multiEmailFnName, multiEmailEndpoint } from "./shared.js";
 
 /**
  * @typedef {import("better-auth").BetterAuthClientPlugin} BetterAuthClientPlugin
@@ -9,7 +8,7 @@ import { multiEmailFnName, multiEmailEndpoint } from "./shared.js";
  * @typedef {Omit<ReturnType<typeof import("better-auth/plugins").emailOTP>, "id">} EmailOTPPlugin
  */
 
-export const conjoinedEmailClientPlugin = () => {
+export const conjoinedEmailClient = () => {
   const otpPlugin = emailOTPClient();
 
   return (
@@ -21,21 +20,8 @@ export const conjoinedEmailClientPlugin = () => {
         ({}),
 
       atomListeners: [...otpPlugin.atomListeners],
-
-      getActions: ($fetch) => ({
-        [multiEmailFnName]: async (
-          /** @type {{ email: string }} */ data,
-          /** @type {import("@better-fetch/fetch").BetterFetchOption} */ options
-        ) => {
-          return $fetch(multiEmailEndpoint, {
-            method: "POST",
-            body: data,
-            ...options,
-          });
-        },
-      }),
     })
   );
 };
 
-export default conjoinedEmailClientPlugin;
+export default conjoinedEmailClient;

@@ -24,7 +24,6 @@ const libBase = join(
   "src"
 );
 export const clientJS = readFileSync(join(libBase, "index.client.js"), "utf-8");
-export const sharedJS = readFileSync(join(libBase, "shared.js"), "utf-8");
 
 export const otpPage = readFileSync(
   join(__dirname, "auth", "otp.html"),

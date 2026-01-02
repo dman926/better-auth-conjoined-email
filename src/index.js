@@ -1,7 +1,6 @@
 import { createAuthEndpoint, createAuthMiddleware } from "better-auth/api";
 import { emailOTP, magicLink } from "better-auth/plugins";
 import { AsyncLocalStorage } from "node:async_hooks";
-import { multiEmailFnName, multiEmailEndpoint } from "./shared.js";
 
 /**
  * @typedef {Object} CaptureStorage
@@ -90,15 +89,15 @@ export const conjoinedEmailPlugin = (options) => {
       endpoints: {
         ...magicLinkPlugin.endpoints,
         ...otpPlugin.endpoints,
-        [multiEmailFnName]: createAuthEndpoint(
-          multiEmailEndpoint,
+        sendConjoinedEmail: createAuthEndpoint(
+          "/sign-in/conjoined-email",
           {
             method: "POST",
             requireHeaders: true,
             body: magicLinkPlugin.endpoints.signInMagicLink.options.body,
             metadata: {
               openapi: {
-                operationId: multiEmailFnName,
+                operationId: "sendConjoinedEmail",
                 description: "Sign in with magic link or OTP",
                 responses: {
                   200: {

@@ -6,7 +6,6 @@ import {
   routes,
   styles,
   clientJS,
-  sharedJS,
   otpPage,
 } from "./routes/index.js";
 import { renderInbox } from "./inbox.js";
@@ -28,11 +27,6 @@ app.get("/styles.css", (c) =>
 );
 app.get("/lib/index.client.js", (c) =>
   c.text(clientJS, 200, {
-    "Content-Type": "application/javascript",
-  })
-);
-app.get("/lib/shared.js", (c) =>
-  c.text(sharedJS, 200, {
     "Content-Type": "application/javascript",
   })
 );
@@ -76,7 +70,7 @@ app.post("/auth/multi-email", async (c) => {
         '<p data-testid="missing-email" style="color: red">Missing email</p>'
       )
     );
-  await auth.api.sendMagicLinkAndOTP({
+  await auth.api.sendConjoinedEmail({
     body: { email },
     headers: c.req.raw.headers,
   });

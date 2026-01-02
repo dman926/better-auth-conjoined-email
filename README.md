@@ -51,12 +51,12 @@ And add to the client better-auth configuration:
 ```ts
 // src/client/auth.ts
 import { createAuthClient } from "better-auth/svelte";
-import { conjoinedEmailClientPlugin } from "@dman926/better-auth-conjoined-email/client";
+import { conjoinedEmailClient } from "@dman926/better-auth-conjoined-email/client";
 
 export const authClient = createAuthClient({
   plugins: [
-    conjoinedEmailClientPlugin(),
-    // magicLinkClient and emailOTPClient are contained in conjoinedEmailClientPlugin
+    conjoinedEmailClient(),
+    // magicLinkClient and emailOTPClient are contained in conjoinedEmailClient
     // and do not need to be added
   ],
 });
@@ -76,8 +76,8 @@ export function SignIn() {
     ev.preventDefault();
 
     // Send the email containing an OTP code and a magic link
-    authClient.sendMagicLinkAndOTP({ email });
-    // auth.api.sendMagicLinkAndOTP is available on the server auth
+    authClient.signIn.conjoinedEmail({ email });
+    // auth.api.sendConjoinedEmail is available on the server auth
   }, [email]);
 
   return (

@@ -30,10 +30,10 @@
 </script>
 <script type="module">
   import { createAuthClient } from "better-auth/client";
-  import { conjoinedEmailClientPlugin } from "/lib/index.client.js";
+  import { conjoinedEmailClient } from "/lib/index.client.js";
 
   export const authClient = createAuthClient({
-    plugins: [conjoinedEmailClientPlugin()],
+    plugins: [conjoinedEmailClient()],
   });
 
   const clientBtn = document.querySelector('button[type="button"]');
@@ -45,7 +45,7 @@
       return;
     }
 
-    authClient.sendMagicLinkAndOTP({ email: emailInput.value }).then(() => {
+    authClient.signIn.conjoinedEmail({ email: emailInput.value }).then(() => {
       window.location.href =
         "/auth?email=" + encodeURIComponent(emailInput.value);
     }).catch((err) => {
