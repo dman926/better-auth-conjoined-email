@@ -30,4 +30,4 @@ jobs:
         run: pnpm run test:e2e
 
       - name: Publish
-        run: pnpm publish --no-git-checks --access public
+        run: pnpm publish --no-git-checks --provenance --access public
